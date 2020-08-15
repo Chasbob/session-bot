@@ -1,37 +1,27 @@
-FROM python:alpine AS s6-alpine
+FROM python:3-alpine AS POETRY
+ADD https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py /bin/get-poetry
 
-ARG S6_OVERLAY_RELEASE=https://github.com/just-containers/s6-overlay/releases/latest/download/s6-overlay-amd64.tar.gz
-ENV S6_OVERLAY_RELEASE=${S6_OVERLAY_RELEASE}
+ARG POETRY_HOME=/etc/poetry
+ARG POETRY_VERSION=1.0.5
+RUN python /bin/get-poetry
 
+WORKDIR /poetry
+COPY ./pyproject.toml ./poetry.lock ./
+RUN /etc/poetry/bin/poetry export -f requirements.txt > requirements.txt
 
-# s6 overlay Download
-ADD ${S6_OVERLAY_RELEASE} /tmp/s6overlay.tar.gz
+FROM python:3.8.5-alpine3.12 AS BUILD
 
-# Build and some of image configuration
-RUN apk upgrade --update --no-cache \
-    && apk add --no-cache bash \
-    && rm -rf /var/cache/apk/* \
-    && tar xzf /tmp/s6overlay.tar.gz -C / \
-    && rm /tmp/s6overlay.tar.gz
-
-
-WORKDIR /app
-COPY credentials.json /app/credentials.json
-COPY requirements.txt /requirements.txt
-RUN \
-    apk add --no-cache --virtual=build-dependencies \
+RUN apk add --no-cache --virtual .build-deps \
       gcc \
-      musl-dev && \
-    pip install --no-cache-dir -r /requirements.txt && \
-    apk del --purge \
-      build-dependencies && \
-    rm -rf \
-	/root/.cache \
-	/tmp/*
+      musl-dev
 
-COPY app /app
+WORKDIR /opt/chat-manager
 
-ADD root /
-COPY .env /app/.env
-# Init
-ENTRYPOINT [ "/init" ]
+COPY --from=POETRY /poetry/requirements.txt .
+
+RUN pip install -r /opt/chat-manager/requirements.txt && \
+      apk del .build-deps
+
+COPY . /opt/chat-manager
+
+ENTRYPOINT ["./docker-entrypoint.sh"]

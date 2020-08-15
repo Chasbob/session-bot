@@ -1,0 +1,21 @@
+{
+  "discord": {
+    "token": "${TOKEN}",
+    "events_id": "${EVENTS_ID}",
+    "guild_id": "${GUILD_ID}",
+    "role_id": "${ROLE_ID}",
+    "command_prefix": "?"
+  },
+  "google": {
+    "cal_id": "${GCAL_ID}",
+    "service_account": ${SA_CREDS}
+  },
+  "messages": {
+    "channel_start": "Hello OWNER! This is the beginning of your own personal text channel on this server :partying_face:",
+    "user_added": "Welcome USER! to OWNER's channel :clap:"
+  },
+  "style": {
+    "colour": "0x1D539F",
+    "image_url": "https://lockd.one/static/f885ec2e045039e82a96847d80779365/7bf1a/lockdone-banner-text.jpg"
+  }
+}

@@ -1,27 +1,30 @@
 import requests
+import logging
 import re
 import os
 import sys
 import json
 import datetime
 import dateutil.parser
-from schedule.session import Session
-from dotenv import load_dotenv
+from .session import Session
 import datetime
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
-def get_calendar():
-    load_dotenv()
-    SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
-    SERVICE_ACCOUNT_FILE = '/app/credentials.json'
+from ...util import config
 
-    creds = service_account.Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+logger = logging.getLogger('session-bot')
+
+def get_calendar():
+    SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
+    SERVICE_ACCOUNT_INFO = config.config['google']['service_account']
+
+    creds = service_account.Credentials.from_service_account_info(
+        SERVICE_ACCOUNT_INFO, scopes=SCOPES)
 
     service = build('calendar', 'v3', credentials=creds)
     now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
-    events_result = service.events().list(calendarId=os.getenv("GCAL_ID"), timeMin=now,
+    events_result = service.events().list(calendarId=config.config['google']['cal_id'], timeMin=now,
                                           maxResults=1, singleEvents=True,
                                           orderBy='startTime').execute()
     events = events_result.get('items', [])
@@ -32,32 +35,28 @@ def get_next_session():
     now = datetime.datetime.now()
     cal_session = Session()
     sessions = get_calendar()
+    next_session = sessions[0]  
     try:
-        next_session = sessions[0]  
-        try:
-            cal_session.start = dateutil.parser.parse(next_session['start']['dateTime'])
-            cal_session.calendar_url = next_session['htmlLink']
-            if 'location' in next_session and next_session['location'][:8] == "https://":
-                cal_session.url = next_session['location']
-            else:
-                cal_session.url = cal_session.calendar_url
+        cal_session.start = dateutil.parser.parse(next_session['start']['dateTime'])
+        cal_session.calendar_url = next_session['htmlLink']
+        if 'location' in next_session and next_session['location'][:8] == "https://":
+            cal_session.url = next_session['location']
+        else:
+            cal_session.url = cal_session.calendar_url
 
-            # Clean up description
-            description = next_session['description'].replace("&nbsp;", " ")
-            description = description.replace("<br>", "\n")
+        # Clean up description
+        description = next_session['description'].replace("&nbsp;", " ")
+        description = description.replace("<br>", "\n")
 
-            # Get Session attributes
-            cal_session.title = get_title(description, next_session['summary'])
-            cal_session.description = get_description(description)
-            cal_session.speaker = get_speaker(description)
-            cal_session.img_url = get_img(description)
-        except Exception as e:
-            print(f"Missing required JSON fields in event '{next_session['summary']}' on '{next_session['start']['dateTime']}'")
-            print(f"Exception: {e}")
-            
+        # Get Session attributes
+        cal_session.title = get_title(description, next_session['summary'])
+        cal_session.description = get_description(description)
+        cal_session.speaker = get_speaker(description)
+        cal_session.img_url = get_img(description)
     except Exception as e:
-        print("Cannot fetch events from calendar/malformed response")
-        print(f"Exception: {e}")
+        logger.warning(f"Missing required JSON fields in event '{next_session['summary']}' on '{next_session['start']['dateTime']}'")
+        logger.warning(f"Exception: {e}")
+        
 
     return cal_session
 
@@ -73,8 +72,8 @@ def get_content(text, question):
         else:
             return content
     except Exception as e:
-        print("Content not found in Calendar description")
-        print(f"Exception: {e}")
+        logger.warning("Content not found in Calendar description")
+        logger.warning(f"Exception: {e}")
         return None
 
 def get_title(content, summary):

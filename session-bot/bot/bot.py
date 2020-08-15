@@ -5,41 +5,33 @@ import pytz
 import datetime
 import random
 import discord
+import logging
+
 from discord.ext import commands
 from discord.http import LoginFailure
-from dotenv import load_dotenv
-from schedule import cal
+from .schedule import cal
 
-def my_except_hook(exctype, value, traceback):
-    if exctype == LoginFailure:
-        print(value)
-        sys.exit(14)
-    else:
-        sys.__excepthook__(exctype, value, traceback)
-sys.excepthook = my_except_hook
+from ..util import config
+from ..util.log import fatal_error
 
-bot = commands.Bot(command_prefix='?')
-COLOUR = 0x1D539F
-IMG_URL = 'https://mlh.will-russell.com/img/discord-session.jpg'
+
+bot = commands.Bot(command_prefix=config.config['discord']['command_prefix'])
+logger = logging.getLogger('session-bot')
+COLOUR = discord.Color(int(config.config['style']['colour'], 0))
+IMG_URL = config.config['style']['image_url']
 
 
 def main():
-    load_dotenv()
-    sys.stdout.flush()
-    global events_channel_id, guild_id, role_id, role_ttp_id, role_techtonica_id
+    global events_channel_id, guild_id, role_id
     try:
-        token = os.getenv("DISCORD_TOKEN")
-        events_channel_id = int(os.getenv("DISCORD_EVENTS_ID"))
-        guild_id = int(os.getenv("DISCORD_GUILD_ID"))
-        role_id = int(os.getenv("DISCORD_ROLE_ID"))
-        role_ttp_id = int(os.getenv("DISCORD_ROLE_TTP_ID"))
-        role_techtonica_id = int(os.getenv("DISCORD_ROLE_TECHTONICA_ID"))
+        token = config.config['discord']['token']
+        events_channel_id = int(config.config['discord']['events_id'])
+        guild_id = int(config.config['discord']['guild_id'])
+        role_id = int(config.config['discord']['role_id'])
         if not token:
-            print(f"msg=\"Token was missing!\"")
-            sys.exit(14)
+            fatal_error(f"msg=\"Token was missing!\"")
     except Exception as e:
-        print(f"msg=\"error parsing environment variables\", error=\"{e}\"")
-        sys.exit(14)
+        fatal_error(f"msg=\"error parsing environment variables\", error=\"{e}\"")
 
     bot.loop.create_task(check_schedule())
     bot.run(token)
@@ -47,11 +39,9 @@ def main():
 async def check_schedule():
     await bot.wait_until_ready()
 
-    global events_channel, fellow_role, ttp_fellow_role, techtonica_role, events_channel_id, guild_id, role_id, role_ttp_id, role_techtonica_id
+    global events_channel, events_channel_id, guild_id, role_id
     events_channel = bot.get_channel(events_channel_id)
     fellow_role = bot.get_guild(guild_id).get_role(role_id) 
-    ttp_fellow_role = bot.get_guild(guild_id).get_role(role_ttp_id)
-    techtonica_role = bot.get_guild(guild_id).get_role(role_techtonica_id)
 
     while True:
         session = cal.get_next_session()
@@ -65,7 +55,7 @@ async def check_schedule():
                 elif check_times(announcement_time_last):
                     await send_short_announcement(session)
             except Exception as e:
-                print(f"Session was invalid: {e}")
+                logger.warning(f"Session was invalid: {e}")
         await asyncio.sleep(60)
 
 async def set_status(session):
@@ -73,8 +63,8 @@ async def set_status(session):
     title = f"{session.title} {get_time_diff(session.start)}"
     if session.url[:len(twitch_url)] == twitch_url:
         activity = discord.Streaming(name=title,
-                                     url=session.url,
-                                     platform="Twitch",)
+                                        url=session.url,
+                                        platform="Twitch",)
     else:
         activity = discord.Activity(name=title,
                                     type=discord.ActivityType.watching)
@@ -99,13 +89,13 @@ async def send_long_announcement(session):
     
     await events_channel.send(f'Hey {fellow_role.mention}s, {ttp_fellow_role.mention}s, and {techtonica_role.mention} - We have a session in 15 minutes! :tada:\n ({str(session.start.strftime("%H:%M GMT"))})', embed=embed)
     await add_reactions(await events_channel.fetch_message(events_channel.last_message_id))
-    print("Long announcement made")
+    logger.info("Long announcement made")
 
 async def send_short_announcement(session):
     global events_channel, fellow_role, ttp_fellow_role, techtonica_role
     await events_channel.send(f'Just 3 minutes until we have **{session.title}**! :tada:\n {session.url}\n{fellow_role.mention} {ttp_fellow_role.mention} {techtonica_role.mention}')
     await add_reactions(await events_channel.fetch_message(events_channel.last_message_id))
-    print("Short announcement made")
+    logger.info("Short announcement made")
 
 def check_times(announcement_time):
     current_time = datetime.datetime.now()
@@ -146,7 +136,7 @@ async def add_reactions(message):
 @bot.command(description="Displays next event")
 async def next_session(ctx):
     session = cal.get_next_session()
-    print("Sending next session via command")
+    logger.info("Sending next session via command")
     if session != None:
         embed = discord.Embed(title=session.title,
                             description=f'Starting at {str(session.start.strftime("%H:%M GMT on %B %d"))}',
