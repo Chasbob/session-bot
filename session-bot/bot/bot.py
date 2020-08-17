@@ -105,6 +105,11 @@ def check_times(announcement_time):
     diff = calc_abs_time_delta(announcement_time)
     return diff.total_seconds() < interval / 2
 
+
+def days_hours_minutes(td):
+    return td.days, td.seconds//3600, (td.seconds//60)%60
+
+
 def calc_abs_time_delta(announcement_time):
     current_time = datetime.datetime.now(datetime.timezone.utc)
     announcement_time = pytz.UTC.normalize(announcement_time)
@@ -119,7 +124,16 @@ def get_time_diff(announcement_time):
     if (diff.total_seconds() < (interval / 2)):
         return "happening NOW!"
     else:
-        return "in " + diff_args[0] + ":" + diff_args[1] + " hr"
+        days, hours, minutes = days_hours_minutes(diff)
+        parts = []
+        if days > 0:
+            parts.append(f"{days} day{'s' if days > 1 else ''}")
+        if hours > 0:
+            parts.append(f"{hours} hour{'s' if hours > 1 else ''}")
+        if minutes > 0:
+            parts.append(f"{minutes} minute{'s' if minutes > 1 else ''}")
+        return f"in {', '.join(parts)}"
+
 
 async def add_reactions(message):
     emojis = ["💻", "🙌", "🔥", "💯", "🍕", "🎉", "🥳", "💡", "📣"]

@@ -1,8 +1,8 @@
-ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
-CONFIG_FILE          ?= $(ROOT_DIR)/config.json
-MAKE_ENV        += TOKEN EVENTS_ID GUILD_ID ROLE_ID
-SHELL_EXPORT    := $(foreach v,$(MAKE_ENV),$(v)='$($(v))' )
-
+SHELL                  := /bin/bash
+ROOT_DIR               := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+CONFIG_FILE            ?= $(ROOT_DIR)/config.json
+MAKE_ENV               += TOKEN EVENTS_ID GUILD_ID ROLE_ID
+SHELL_EXPORT           := $(foreach v,$(MAKE_ENV),$(v)='$($(v))' )
 PACKAGE       		   ?= bot
 DEFAULT_IMAGE 		   ?= chasbob/session-bot
 VERSION       		   ?= $(shell git describe --tags --always --dirty --match="v*" 2> /dev/null || cat $(CURDIR)/.version 2> /dev/null || echo v0)
@@ -21,7 +21,7 @@ config:
 
 .PHONY: watch
 watch:
-	reflex -r '\.py$\' -s -- sh -c 'make run'
+	reflex -r '\.py$\' -s -- sh -c "$(MAKE) docker-log"
 
 .PHONY: docker-build
 docker-build:
