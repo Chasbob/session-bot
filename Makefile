@@ -38,3 +38,8 @@ docker-rm:
 .PHONY: docker-log
 docker-log: docker-run
 	docker logs -f session-bot
+
+
+.PHONY: compose-up
+compose-up:
+	source ./bin/build-config.sh && docker-compose up --build -d

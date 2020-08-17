@@ -4,6 +4,6 @@ version: '3.8'
 services:
   session_bot:
     build: .
-    env_file: .env
     environment: 
       PYTHONUNBUFFERED: 1
+      CONFIG: $CONFIG

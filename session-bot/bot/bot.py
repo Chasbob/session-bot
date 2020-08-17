@@ -97,7 +97,7 @@ async def send_long_announcement(session):
 
 async def send_short_announcement(session):
     global events_channel, fellow_role
-    await events_channel.send(f'Just 3 minutes until we have **{session.title}**! :tada:\n {session.url}\n{fellow_role.mention}')
+    await events_channel.send(f'Just 3 minutes until we have **{session.title}**! :tada:\n {session.url}\n{", ".join(f"{role.mention}" for role in roles)}')
     await add_reactions(await events_channel.fetch_message(events_channel.last_message_id))
     logger.info("Short announcement made")
 
