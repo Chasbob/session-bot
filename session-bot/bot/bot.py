@@ -20,14 +20,16 @@ logger = logging.getLogger('session-bot')
 COLOUR = discord.Color(int(config.config['style']['colour'], 0))
 IMG_URL = config.config['style']['image_url']
 
+interval = int(config.config['discord']['update_interval'])
+print(f"interval={interval}")
 
 def main():
-    global events_channel_id, guild_id, role_id
+    global events_channel_id, guild_id, role_ids
     try:
         token = config.config['discord']['token']
         events_channel_id = int(config.config['discord']['events_id'])
         guild_id = int(config.config['discord']['guild_id'])
-        role_id = int(config.config['discord']['role_id'])
+        role_ids = list(map(lambda x: int(x), config.config['discord']['roles']))
         if not token:
             fatal_error(f"msg=\"Token was missing!\"")
     except Exception as e:
@@ -39,9 +41,11 @@ def main():
 async def check_schedule():
     await bot.wait_until_ready()
 
-    global events_channel, events_channel_id, guild_id, role_id
+    global events_channel, events_channel_id, guild_id, role_ids, roles
     events_channel = bot.get_channel(events_channel_id)
-    fellow_role = bot.get_guild(guild_id).get_role(role_id) 
+    roles = []
+    for role_id in role_ids:
+        roles.append(bot.get_guild(guild_id).get_role(role_id))
 
     while True:
         session = cal.get_next_session()
@@ -56,7 +60,7 @@ async def check_schedule():
                     await send_short_announcement(session)
             except Exception as e:
                 logger.warning(f"Session was invalid: {e}")
-        await asyncio.sleep(60)
+        await asyncio.sleep(interval)
 
 async def set_status(session):
     twitch_url = "https://twitch.tv"
@@ -71,58 +75,48 @@ async def set_status(session):
     await bot.change_presence(status=discord.Status.online, activity=activity)
 
 async def send_long_announcement(session):
-    global events_channel, fellow_role, ttp_fellow_role, techtonica_role
-    
+    global events_channel, roles
+
     embed = discord.Embed(title=session.title,
                         description=session.description,
                         url=session.url,
                         colour=COLOUR)
 
     embed.set_footer(text=session.url)
-    
+
     if session.img_url != None:
         embed.set_image(url=session.img_url)
     else:
         embed.set_image(url=IMG_URL)
     if session.speaker != None:
         embed.set_author(name=session.speaker)
-    
-    await events_channel.send(f'Hey {fellow_role.mention}s, {ttp_fellow_role.mention}s, and {techtonica_role.mention} - We have a session in 15 minutes! :tada:\n ({str(session.start.strftime("%H:%M GMT"))})', embed=embed)
+
+    await events_channel.send(f'Hey {", ".join(f"{role.mention}" for role in roles)} - We have a session in 15 minutes! :tada:\n ({str(session.start.strftime("%H:%M GMT"))})', embed=embed)
     await add_reactions(await events_channel.fetch_message(events_channel.last_message_id))
     logger.info("Long announcement made")
 
 async def send_short_announcement(session):
-    global events_channel, fellow_role, ttp_fellow_role, techtonica_role
-    await events_channel.send(f'Just 3 minutes until we have **{session.title}**! :tada:\n {session.url}\n{fellow_role.mention} {ttp_fellow_role.mention} {techtonica_role.mention}')
+    global events_channel, fellow_role
+    await events_channel.send(f'Just 3 minutes until we have **{session.title}**! :tada:\n {session.url}\n{fellow_role.mention}')
     await add_reactions(await events_channel.fetch_message(events_channel.last_message_id))
     logger.info("Short announcement made")
 
 def check_times(announcement_time):
-    current_time = datetime.datetime.now()
-    current_year = current_time.strftime("%Y")
-    current_month = current_time.strftime("%m")
-    current_day = current_time.strftime("%d")
-    current_hour = current_time.strftime("%H")
-    current_minute = current_time.strftime("%M")
+    diff = calc_abs_time_delta(announcement_time)
+    return diff.total_seconds() < interval / 2
 
-    announcement_year = announcement_time.strftime("%Y")
-    announcement_month = announcement_time.strftime("%m")
-    announcement_day = announcement_time.strftime("%d")
-    announcement_hour = announcement_time.strftime("%H")
-    announcement_minute = announcement_time.strftime("%M")
+def calc_abs_time_delta(announcement_time):
+    current_time = datetime.datetime.now(datetime.timezone.utc)
+    announcement_time = pytz.UTC.normalize(announcement_time)
+    abs_delta = abs(announcement_time - current_time)
+    logger.debug(f"delta={str(abs_delta)}")
+    return abs_delta
 
-    if current_year == announcement_year and current_month == announcement_month and current_day == announcement_day:
-        if current_hour == announcement_hour and current_minute == announcement_minute:
-            return True
-        else:
-            return False
-    else:
-        return False
 
 def get_time_diff(announcement_time):
-    diff = announcement_time.replace(tzinfo=pytz.UTC) - datetime.datetime.now().replace(tzinfo=pytz.UTC)
+    diff = calc_abs_time_delta(announcement_time)
     diff_args = str(diff).split(':')
-    if (diff.total_seconds() < 0):
+    if (diff.total_seconds() < (interval / 2)):
         return "happening NOW!"
     else:
         return "in " + diff_args[0] + ":" + diff_args[1] + " hr"
@@ -132,6 +126,7 @@ async def add_reactions(message):
     random.shuffle(emojis)
     for emoji in emojis[:4]:
         await message.add_reaction(emoji)
+
 
 @bot.command(description="Displays next event")
 async def next_session(ctx):
@@ -153,7 +148,7 @@ async def next_session(ctx):
 
         await ctx.send(f'Here\'s the next session at {str(session.start.strftime("%H:%M GMT on %B %d"))}!', embed=embed)
         await add_reactions(await ctx.channel.fetch_message(ctx.channel.last_message_id))
-    
+
 @bot.after_invoke
 async def after_invoke(ctx):
     await ctx.message.delete()

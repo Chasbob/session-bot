@@ -17,6 +17,11 @@ Make sure to set your Google Calendar to the same timezone as the Discord Bot. I
 
 - save service account creds in `credentials.json`
 
+- create a list of Discord roles to be mentioned in `roles.json`
+```json
+[ "742344995412347915" ]
+```
+
 ```
 docker build -t session-bot .
 cp example.env .env

@@ -4,7 +4,9 @@
     "events_id": "${EVENTS_ID}",
     "guild_id": "${GUILD_ID}",
     "role_id": "${ROLE_ID}",
-    "command_prefix": "?"
+    "roles": ${ROLES},
+    "command_prefix": "?",
+    "update_interval": "${UPDATE_INTERVAL}"
   },
   "google": {
     "cal_id": "${GCAL_ID}",

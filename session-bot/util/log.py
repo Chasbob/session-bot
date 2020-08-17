@@ -10,7 +10,7 @@ def init():
     logging.addLevelName(logging.WARNING, 'WARN')
     logging.addLevelName(logging.CRITICAL, 'FATAL')
     logger = logging.getLogger('session-bot')
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(os.getenv('LOG_LEVEL', 'INFO'))
 
     console_format = logging.Formatter('%(levelname)5s %(module)6s: %(message)s')
 
@@ -19,6 +19,7 @@ def init():
     console_handler.setLevel(CONSOLE_LEVEL)
 
     logger.addHandler(console_handler)
+    logger.info(f"logging at level={logger.level}")
 
 def fatal_error(*args, **kwargs):
     logger = logging.getLogger('session-bot')

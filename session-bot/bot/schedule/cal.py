@@ -35,7 +35,7 @@ def get_next_session():
     now = datetime.datetime.now()
     cal_session = Session()
     sessions = get_calendar()
-    next_session = sessions[0]  
+    next_session = sessions[0]
     try:
         cal_session.start = dateutil.parser.parse(next_session['start']['dateTime'])
         cal_session.calendar_url = next_session['htmlLink']
@@ -54,9 +54,8 @@ def get_next_session():
         cal_session.speaker = get_speaker(description)
         cal_session.img_url = get_img(description)
     except Exception as e:
-        logger.warning(f"Missing required JSON fields in event '{next_session['summary']}' on '{next_session['start']['dateTime']}'")
         logger.warning(f"Exception: {e}")
-        
+
 
     return cal_session
 
