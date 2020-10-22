@@ -56,8 +56,8 @@ def get_next_session():
     except Exception as e:
         logger.warning(f"Exception: {e}")
 
-
     return cal_session
+
 
 def get_content(text, question):
     if question not in text:

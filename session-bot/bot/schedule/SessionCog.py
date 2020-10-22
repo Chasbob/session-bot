@@ -8,8 +8,7 @@ from discord.ext import tasks
 
 from . import cal
 from ..utils import add_reactions
-from ...util.timeTools import calc_abs_time_delta
-from ...util.timeTools import get_time_diff
+from ...util.timeTools import calc_abs_time_delta, get_time_diff
 
 
 class SessionCog(commands.Cog):
@@ -26,12 +25,13 @@ class SessionCog(commands.Cog):
     roles: List[discord.Role]
 
 
-    def __init__(self, bot, interval, colour, img_url, roles):
+    def __init__(self, bot, interval, colour, img_url, roles, events_channel):
         self.bot = bot
         self.interval = interval
         self.colour = colour
         self.img_url = img_url
         self.roles = roles
+        self.events_channel = events_channel
         self.logger = logging.getLogger('session-bot')
         self.looper.change_interval(seconds=interval)
         self.looper.start()
@@ -64,7 +64,6 @@ class SessionCog(commands.Cog):
                               url=session.url,
                               colour=self.colour)
 
-        embed.set_footer(text=session.url)
 
         if session.img_url:
             embed.set_image(url=session.img_url)
@@ -74,7 +73,7 @@ class SessionCog(commands.Cog):
             embed.set_author(name=session.speaker)
 
         await self.events_channel.send(
-            f'Hey {", ".join(f"{role.mention}" for role in self.roles)} - We have a session in 15 minutes! :tada:\n ({str(session.start.strftime("%H:%M GMT"))})',
+            f'Hey {", ".join(f"{role.mention}" for role in self.roles)} - We have a session in {get_time_diff(session.start)} minutes! :tada:\n ({str(session.start.strftime("%H:%M GMT"))})',
             embed=embed)
         await add_reactions(await self.events_channel.fetch_message(self.events_channel.last_message_id))
         self.logger.info("Long announcement made")
@@ -82,7 +81,7 @@ class SessionCog(commands.Cog):
 
     async def send_short_announcement(self, session):
         await self.events_channel.send(
-            f'Just 3 minutes until we have **{session.title}**! :tada:\n {session.url}\n{", ".join(f"{role.mention}" for role in self.roles)}')
+            f'Just {get_time_diff(session.start)} minutes until we have **{session.title}**! :tada:\n {session.url}\n{", ".join(f"{role.mention}" for role in self.roles)}')
         await add_reactions(await self.events_channel.fetch_message(self.events_channel.last_message_id))
         self.logger.info("Short announcement made")
 
@@ -90,8 +89,6 @@ class SessionCog(commands.Cog):
     async def set_status(self, session):
         twitch_url = "https://twitch.tv"
         title = f"{session.title} {get_time_diff(session.start, self.interval)}"
-        self.logger.info(f'set_status title={title}')
-        self.logger.info(f'set_status url={session.url}')
         if session.url[:len(twitch_url)] == twitch_url:
             activity = discord.Streaming(name=title,
                                          url=session.url,

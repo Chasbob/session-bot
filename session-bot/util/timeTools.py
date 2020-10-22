@@ -8,15 +8,18 @@ def days_hours_minutes(td):
 
 
 def calc_abs_time_delta(announcement_time):
+    return abs(calc_time_delta(announcement_time))
+
+
+def calc_time_delta(announcement_time):
     current_time = datetime.datetime.now(datetime.timezone.utc)
     announcement_time = pytz.UTC.normalize(announcement_time)
-    abs_delta = abs(announcement_time - current_time)
-    return abs_delta
+    return announcement_time - current_time
 
 
-def get_time_diff(announcement_time, interval):
+def get_time_diff(announcement_time, interval=None):
     diff = calc_abs_time_delta(announcement_time)
-    if diff.total_seconds() < (interval / 2):
+    if interval and diff.total_seconds() < (interval / 2):
         return "happening NOW!"
     else:
         days, hours, minutes = days_hours_minutes(diff)
