@@ -1,9 +1,8 @@
 {
   "discord": {
     "token": "${TOKEN}",
-    "events_id": "${EVENTS_ID}",
+    "announcement_channel": "${ANNOUNCEMENT_CHANNEL}",
     "guild_id": "${GUILD_ID}",
-    "role_id": "${ROLE_ID}",
     "roles": ${ROLES},
     "command_prefix": "?",
     "update_interval": "${UPDATE_INTERVAL}"
@@ -18,6 +17,6 @@
   },
   "style": {
     "colour": "0x1D539F",
-    "image_url": "https://lockd.one/static/f885ec2e045039e82a96847d80779365/7bf1a/lockdone-banner-text.jpg"
+    "image_url": "https://hackthemidlands.com/static/logo-f05f6be3a44c28b9f888db39cb7dbf2a.png"
   }
 }
