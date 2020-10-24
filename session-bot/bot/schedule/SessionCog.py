@@ -64,7 +64,6 @@ class SessionCog(commands.Cog):
                               url=session.url,
                               colour=self.colour)
 
-
         if session.img_url:
             embed.set_image(url=session.img_url)
         else:
@@ -84,6 +83,17 @@ class SessionCog(commands.Cog):
             f'Just {get_time_diff(session.start)} minutes until we have **{session.title}**! :tada:\n {session.url}\n{", ".join(f"{role.mention}" for role in self.roles)}')
         await add_reactions(await self.events_channel.fetch_message(self.events_channel.last_message_id))
         self.logger.info("Short announcement made")
+
+
+    @commands.command(name='announce', description='manual trigger announcement')
+    @commands.has_permissions(administrator=True)
+    async def announce(self, ctx: commands.Context, *, short: bool = False):
+        session = cal.get_next_session()
+        if session:
+            if short:
+                await self.send_short_announcement(session)
+            else:
+                await self.send_long_announcement(session)
 
 
     async def set_status(self, session):

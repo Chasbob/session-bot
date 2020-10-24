@@ -4,7 +4,7 @@
     "announcement_channel": "${ANNOUNCEMENT_CHANNEL}",
     "guild_id": "${GUILD_ID}",
     "roles": ${ROLES},
-    "command_prefix": "?",
+    "command_prefix": "s/",
     "update_interval": "${UPDATE_INTERVAL}"
   },
   "google": {

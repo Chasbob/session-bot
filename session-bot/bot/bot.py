@@ -10,8 +10,9 @@ from ..util.log import fatal_error
 from .utils import add_reactions
 
 from .schedule.SessionCog import SessionCog
+from .ReactCog import ReactionCog
 
-bot = commands.Bot(command_prefix=config.config['discord']['command_prefix'])
+bot: commands.Bot = commands.Bot(command_prefix=config.config['discord']['command_prefix'])
 logger = logging.getLogger('session-bot')
 COLOUR = discord.Color(int(config.config['style']['colour'], 0))
 IMG_URL = config.config['style']['image_url']
@@ -33,18 +34,18 @@ def main():
         fatal_error(f"msg=\"error parsing environment variables\", error=\"{e}\"")
         return
 
-    # bot.loop.create_task(check_schedule())
     bot.run(token)
 
 @bot.event
 async def on_ready():
-    # global events_channel, events_channel_id, guild_id, role_ids, roles
-    # events_channel = bot.get_channel(events_channel_id)
     announcement_channel = bot.get_guild(int(config.config['discord']['guild_id'])).get_channel(int(config.config['discord']['announcement_channel']))
     roles = []
     for role_id in role_ids:
         roles.append(bot.get_guild(guild_id).get_role(role_id))
     bot.add_cog(SessionCog(bot=bot, interval=interval, colour=COLOUR, img_url=IMG_URL, roles=roles, events_channel=announcement_channel))
+    bot.add_cog(ReactionCog(name='something'))
+    for guild in bot.guilds:
+        logger.info(f'Logged into {guild}')
     logger.info('Bot Ready!')
 
 
