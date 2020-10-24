@@ -72,7 +72,7 @@ class SessionCog(commands.Cog):
             embed.set_author(name=session.speaker)
 
         await self.events_channel.send(
-            f'Hey {", ".join(f"{role.mention}" for role in self.roles)} - We have a session in {get_time_diff(session.start)} minutes! :tada:\n ({str(session.start.strftime("%H:%M GMT"))})',
+            f'Hey {", ".join(f"{role.mention}" for role in self.roles)} - We have a session in 15 minutes! :tada:\n ({str(session.start.strftime("%H:%M GMT"))})',
             embed=embed)
         await add_reactions(await self.events_channel.fetch_message(self.events_channel.last_message_id))
         self.logger.info("Long announcement made")
@@ -80,7 +80,7 @@ class SessionCog(commands.Cog):
 
     async def send_short_announcement(self, session):
         await self.events_channel.send(
-            f'Just {get_time_diff(session.start)} minutes until we have **{session.title}**! :tada:\n {session.url}\n{", ".join(f"{role.mention}" for role in self.roles)}')
+            f'Just 3 minutes until we have **{session.title}**! :tada:\n {session.url}\n{", ".join(f"{role.mention}" for role in self.roles)}')
         await add_reactions(await self.events_channel.fetch_message(self.events_channel.last_message_id))
         self.logger.info("Short announcement made")
 
